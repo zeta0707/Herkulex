@@ -494,7 +494,7 @@ void HerkulexClass::actionAll(int pTime)
 	pID   = servoID;     	    // 4. Servo ID - 253=all servos
 	cmd   = HRAMREAD;           // 5. CMD
 	data[0]=0x3A;               // 8. Address
-	data[1]=0x02;               // 9. Lenght
+	data[1]=0x02;               // 9. Length
 	
 	lenghtString=2;             // lenghtData
   	
@@ -646,7 +646,54 @@ int HerkulexClass::getSpeed(int servoID) {
 
 }
 
+// write registry in the RAM: one byte
+int HerkulexClass::readRegistryRAM(int servoID, int address)
+{
+  pSize = 0x09;               	// 3.Packet size 9
+  pID   = servoID;     			// 4. Servo ID - 253=all servos
+  cmd   = HRAMREAD;          	// 5. CMD
+  data[0]=address;              // 8. Address
+  data[1]=0x01;               	// 9. Length
+ 
+  lenghtString=2;             	// lenghtData
 
+  ck1=checksum1(data,lenghtString);	//6. Checksum1
+  ck2=checksum2(ck1);				//7. Checksum2
+
+  dataEx[0] = 0xFF;			// Packet Header
+  dataEx[1] = 0xFF;			// Packet Header	
+  dataEx[2] = pSize;	 	// Packet Size
+  dataEx[3] = pID;			// Servo ID
+  dataEx[4] = cmd;			// Command Ram Read
+  dataEx[5] = ck1;			// Checksum 1
+  dataEx[6] = ck2;			// Checksum 2
+  dataEx[7] = data[0]; 		// Address 52
+  dataEx[8] = data[1]; 		// Length
+
+  sendData(dataEx, pSize);
+
+  delay(1);
+  readData(13);
+
+  pSize = dataEx[2];           // 3.Packet size 7-58
+  pID   = dataEx[3];           // 4. Servo ID
+  cmd   = dataEx[4];           // 5. CMD
+  data[0]=dataEx[7];
+  data[1]=dataEx[8];
+  data[2]=dataEx[9];
+  data[3]=dataEx[10];
+  data[4]=dataEx[11];
+  data[5]=dataEx[12];
+  lenghtString=6;
+
+  ck1=checksum1(data,lenghtString);	//6. Checksum1
+  ck2=checksum2(ck1);				//7. Checksum2
+
+  if (ck1 != dataEx[5]) return -1;
+  if (ck2 != dataEx[6]) return -1;
+
+  return dataEx[9];
+}
 
 // move one servo with continous rotation
 void HerkulexClass::moveSpeedOne(int servoID, int Goal, int pTime, int iLed)
